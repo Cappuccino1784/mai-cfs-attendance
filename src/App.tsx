@@ -1,0 +1,115 @@
+import { useState, useEffect, useCallback } from 'react';
+import { api } from './api';
+import type { Member, Hangout, StatsResponse } from './types';
+import Calendar from './components/Calendar';
+import AttendanceModal from './components/AttendanceModal';
+import StatsChart from './components/StatsChart';
+import Header from './components/Header';
+
+export default function App() {
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [hangouts, setHangouts] = useState<Hangout[]>([]);
+  const [stats, setStats] = useState<StatsResponse | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedHangout, setSelectedHangout] = useState<Hangout | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [m, h, s] = await Promise.all([
+        api.getMembers(),
+        api.getHangouts(currentYear, currentMonth),
+        api.getStats(),
+      ]);
+      setMembers(m);
+      setHangouts(h);
+      setStats(s);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentYear, currentMonth]);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const handleDayClick = (date: string) => {
+    const existing = hangouts.find(h => h.date === date);
+    setSelectedDate(date);
+    setSelectedHangout(existing ?? null);
+  };
+
+  const handleModalClose = () => {
+    setSelectedDate(null);
+    setSelectedHangout(null);
+  };
+
+  const handleSave = async (
+    date: string,
+    attendance: { person_name: string; present: boolean }[],
+    label?: string,
+    photo?: File | null,
+    removePhoto?: boolean
+  ) => {
+    if (selectedHangout) {
+      await api.updateHangout(selectedHangout.id, { label, attendance, photo, removePhoto });
+    } else {
+      await api.createHangout({ date, label, attendance, photo });
+    }
+    await fetchAll();
+    handleModalClose();
+  };
+
+  const handleDelete = async (id: number) => {
+    await api.deleteHangout(id);
+    await fetchAll();
+    handleModalClose();
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-peach-50">
+      <Header />
+      <main className="max-w-4xl mx-auto px-4 pb-16">
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-4xl animate-bounce">🌸</div>
+          </div>
+        ) : (
+          <>
+            <Calendar
+              year={currentYear}
+              month={currentMonth}
+              hangouts={hangouts}
+              onDayClick={handleDayClick}
+              onPrevMonth={() => {
+                if (currentMonth === 1) {
+                  setCurrentMonth(12); setCurrentYear(y => y - 1);
+                } else { setCurrentMonth(m => m - 1); }
+              }}
+              onNextMonth={() => {
+                if (currentMonth === 12) {
+                  setCurrentMonth(1); setCurrentYear(y => y + 1);
+                } else { setCurrentMonth(m => m + 1); }
+              }}
+            />
+            {stats && <StatsChart stats={stats} />}
+          </>
+        )}
+      </main>
+
+      {selectedDate && (
+        <AttendanceModal
+          date={selectedDate}
+          hangout={selectedHangout}
+          members={members}
+          onClose={handleModalClose}
+          onSave={handleSave}
+          onDelete={handleDelete}
+        />
+      )}
+    </div>
+  );
+}
