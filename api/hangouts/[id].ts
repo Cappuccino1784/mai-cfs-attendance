@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { IncomingForm, type Fields, type Files } from 'formidable';
+import { IncomingForm, type Fields, type Files, type File as FormidableFile } from 'formidable';
+import { readFileSync } from 'fs';
 import { getClient, initDB } from '../_db.js';
 
 export const config = { api: { bodyParser: false } };
@@ -45,6 +46,17 @@ async function withAttendance(id: number) {
   return { ...hangout, attendance: attendance ?? [] };
 }
 
+async function uploadPhoto(file: FormidableFile, date: string) {
+  const db = getClient();
+  const path = `hangouts/${date}-${Date.now()}`;
+  const { error } = await db.storage.from('hangout-photos').upload(path, readFileSync(file.filepath), {
+    contentType: file.mimetype ?? 'image/jpeg',
+    upsert: false,
+  });
+  if (error) throw error;
+  return db.storage.from('hangout-photos').getPublicUrl(path).data.publicUrl;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, DELETE, OPTIONS');
@@ -64,10 +76,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'GET') return res.json(await withAttendance(id));
 
     if (req.method === 'PUT') {
-      const { fields } = await parseForm(req);
+      const { fields, files } = await parseForm(req);
       const attendance = parseAttendance(field(fields, 'attendance'));
+      const photoFile = Array.isArray(files.photo) ? files.photo[0] : files.photo;
+      const photo_url = photoFile?.filepath
+        ? await uploadPhoto(photoFile, existing.date)
+        : existing.photo_url;
       const { error } = await db.from('hangouts').update({
         label: field(fields, 'label') ?? existing.label,
+        photo_url,
       }).eq('id', id);
       if (error) throw error;
 

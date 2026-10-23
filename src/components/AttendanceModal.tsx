@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Member, Hangout } from '../types';
 
 interface Props {
@@ -10,7 +10,8 @@ interface Props {
   onSave: (
     date: string,
     attendance: { person_name: string; present: boolean }[],
-    label?: string
+    label?: string,
+    photo?: File | null
   ) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
 }
@@ -28,24 +29,36 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const initial: Record<string, boolean> = {};
     if (hangout) {
-      for (const a of hangout.attendance) initial[a.person_name] = a.present === 1;
+      for (const a of hangout.attendance) initial[a.person_name] = a.present === 1 || a.present === true;
     }
     for (const m of members) if (!(m.name in initial)) initial[m.name] = false;
     setPresent(initial);
     setLabel(hangout?.label ?? '');
+    setPhotoFile(null);
+    setPhotoPreview(null);
   }, [hangout, members]);
 
   const toggle = (name: string) => setPresent(p => ({ ...p, [name]: !p[name] }));
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
 
   const handleSave = async () => {
     setSaving(true);
     try {
       const attendance = members.map(m => ({ person_name: m.name, present: present[m.name] ?? false }));
-      await onSave(date, attendance, label || undefined);
+      await onSave(date, attendance, label || undefined, photoFile);
     } finally {
       setSaving(false);
     }
@@ -67,14 +80,14 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
       style={{ background: 'rgba(249, 168, 212, 0.25)', backdropFilter: 'blur(6px)' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-3xl shadow-2xl shadow-pink-100 w-full max-w-md border border-pink-100 overflow-hidden animate-in max-h-[90vh] flex flex-col">
+      <div className="w-full max-w-md overflow-hidden rounded-[2rem] border border-pink-200 bg-white shadow-2xl shadow-purple-300/40 animate-in max-h-[90vh] flex flex-col">
 
         {/* Header */}
-        <div className="bg-gradient-to-r from-pink-100 via-purple-100 to-peach-100 px-6 pt-6 pb-4 flex-shrink-0">
+        <div className="flex-shrink-0 bg-gradient-to-br from-pink-200 via-purple-100 to-peach-100 px-6 pb-5 pt-6">
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-2xl mb-1">🌸</div>
-              <h3 className="font-bold text-purple-600 text-lg leading-tight">{formatDate(date)}</h3>
+              <div className="mb-1 text-3xl">🌸</div>
+              <h3 className="text-xl font-black leading-tight text-purple-700">{formatDate(date)}</h3>
             </div>
             <button
               onClick={onClose}
@@ -90,7 +103,7 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
             value={label}
             onChange={e => setLabel(e.target.value)}
             placeholder="Add a note... (e.g. 'Cafe run ☕')"
-            className="mt-3 w-full bg-white/70 rounded-xl px-3 py-2 text-sm text-purple-600 placeholder-purple-300 border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300"
+            className="mt-4 w-full rounded-xl border border-white/80 bg-white/75 px-3 py-2.5 text-sm text-purple-700 placeholder-purple-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
           />
         </div>
 
@@ -99,8 +112,26 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
 
           {/* ── Attendance section ─────────────────────────────────────────── */}
           <div>
+            <p className="mb-2 text-sm font-black uppercase tracking-[0.12em] text-purple-500">Hangout photo 📷</p>
+            {photoPreview || hangout?.photo_url ? (
+              <img src={photoPreview ?? hangout?.photo_url ?? ''} alt="Hangout" className="aspect-square w-full rounded-2xl border-2 border-pink-200 object-cover" />
+            ) : (
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square w-full rounded-2xl border-2 border-dashed border-pink-200 text-sm text-pink-400">
+                🖼️ Add a photo
+              </button>
+            )}
+            {photoPreview && (
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="mt-2 text-xs text-purple-400">
+                Change photo
+              </button>
+            )}
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+          </div>
+
+          {/* ── Attendance section ─────────────────────────────────────────── */}
+          <div>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-purple-400">Who came? 🎀</p>
+              <p className="text-sm font-black uppercase tracking-[0.12em] text-purple-500">Who came? 🎀</p>
               <span className="text-xs bg-pink-100 text-pink-500 font-bold px-2 py-0.5 rounded-full">
                 {attendingCount}/{members.length}
               </span>

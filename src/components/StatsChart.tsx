@@ -53,10 +53,10 @@ export default function StatsChart({ stats }: Props) {
   }
 
   return (
-    <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-lg shadow-pink-100 p-6 border border-pink-100">
+    <div className="rounded-[2rem] border border-purple-200 bg-white/75 p-6 shadow-2xl shadow-purple-200/40 backdrop-blur-sm">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-bold text-purple-600 text-lg">Attendance Stats 🎀</h3>
+          <h3 className="text-xl font-black tracking-[-0.02em] text-purple-700">Attendance Stats 🎀</h3>
           <p className="text-purple-300 text-xs mt-0.5">{totalHangouts} total hangout{totalHangouts !== 1 ? 's' : ''}</p>
         </div>
       </div>
@@ -106,17 +106,6 @@ export default function StatsChart({ stats }: Props) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
-
-      {/* "Perfect attendance" badge */}
-      {members.filter(m => m.attended === totalHangouts && totalHangouts > 0).map(m => (
-        <div
-          key={m.id}
-          className="mt-2 flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 text-xs text-yellow-600 font-medium"
-        >
-          <span>⭐</span>
-          <span>{m.name} has perfect attendance!</span>
-        </div>
-      ))}
     </div>
   );
 }

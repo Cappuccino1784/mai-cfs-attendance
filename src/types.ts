@@ -9,7 +9,7 @@ export interface AttendanceRecord {
   id: number;
   hangout_id: number;
   person_name: string;
-  present: 0 | 1;
+  present: 0 | 1 | boolean;
 }
 
 export interface Hangout {
@@ -17,6 +17,7 @@ export interface Hangout {
   date: string; // YYYY-MM-DD
   label: string | null;
   created_at: string;
+  photo_url: string | null;
   attendance: AttendanceRecord[];
 }
 

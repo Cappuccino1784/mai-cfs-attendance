@@ -53,13 +53,14 @@ export default function App() {
   const handleSave = async (
     date: string,
     attendance: { person_name: string; present: boolean }[],
-    label?: string
+    label?: string,
+    photo?: File | null
   ) => {
     try {
       if (selectedHangout) {
-        await api.updateHangout(selectedHangout.id, { label, attendance });
+        await api.updateHangout(selectedHangout.id, { label, attendance, photo });
       } else {
-        await api.createHangout({ date, label, attendance });
+        await api.createHangout({ date, label, attendance, photo });
       }
       await fetchAll();
       handleModalClose();
@@ -84,7 +85,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-peach-50">
       <Header />
-      <main className="max-w-4xl mx-auto px-4 pb-16">
+      <main className="mx-auto max-w-5xl px-4 pb-16">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="text-4xl animate-bounce">🌸</div>
@@ -100,6 +101,7 @@ export default function App() {
               year={currentYear}
               month={currentMonth}
               hangouts={hangouts}
+              members={members}
               onDayClick={handleDayClick}
               onPrevMonth={() => {
                 if (currentMonth === 1) {

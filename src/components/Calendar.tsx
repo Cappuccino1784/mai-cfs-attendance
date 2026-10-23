@@ -1,9 +1,11 @@
-import type { Hangout } from '../types';
+import { useState } from 'react';
+import type { Hangout, Member } from '../types';
 
 interface Props {
   year: number;
   month: number;
   hangouts: Hangout[];
+  members: Member[];
   onDayClick: (date: string) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
@@ -18,19 +20,11 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 function pad(n: number) { return String(n).padStart(2, '0'); }
 
 function getAttendanceCount(hangout: Hangout) {
-  return hangout.attendance.filter(a => a.present === 1).length;
+  return hangout.attendance.filter(a => a.present === 1 || a.present === true).length;
 }
 
-function getCountColor(count: number, total: number) {
-  const ratio = count / total;
-  if (ratio === 0) return 'bg-gray-100 text-gray-400';
-  if (ratio <= 0.4) return 'bg-rose-100 text-rose-400';
-  if (ratio <= 0.6) return 'bg-yellow-100 text-yellow-500';
-  if (ratio < 1) return 'bg-purple-100 text-purple-500';
-  return 'bg-green-100 text-green-600';
-}
-
-export default function Calendar({ year, month, hangouts, onDayClick, onPrevMonth, onNextMonth }: Props) {
+export default function Calendar({ year, month, hangouts, members, onDayClick, onPrevMonth, onNextMonth }: Props) {
+  const [hoveredDate, setHoveredDate] = useState<string | null>(null);
   const firstDay = new Date(year, month - 1, 1).getDay();
   const daysInMonth = new Date(year, month, 0).getDate();
   const today = new Date();
@@ -39,10 +33,7 @@ export default function Calendar({ year, month, hangouts, onDayClick, onPrevMont
   const hangoutMap: Record<string, Hangout> = {};
   for (const h of hangouts) { hangoutMap[h.date] = h; }
 
-  const totalMembers = Math.max(
-    ...hangouts.map(h => h.attendance.length),
-    5
-  );
+  const totalMembers = members.length;
 
   // Build grid cells
   const cells: (number | null)[] = [];
@@ -52,53 +43,56 @@ export default function Calendar({ year, month, hangouts, onDayClick, onPrevMont
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-lg shadow-pink-100 p-6 mb-6 border border-pink-100">
+    <div className="mb-7 rounded-[2rem] border border-pink-200 bg-white/75 p-4 shadow-2xl shadow-pink-200/50 backdrop-blur-sm sm:p-7">
       {/* Month nav */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-7 flex items-center justify-between rounded-2xl bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 px-4 py-3 shadow-lg shadow-purple-200/60">
         <button
           onClick={onPrevMonth}
-          className="w-10 h-10 rounded-full bg-pink-100 hover:bg-pink-200 text-pink-500 transition-colors flex items-center justify-center text-lg font-bold"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-xl font-bold text-white transition-colors hover:bg-white/35 focus:outline-none focus:ring-2 focus:ring-white/70"
         >
           ‹
         </button>
         <div className="text-center">
-          <h2 className="text-xl font-bold text-purple-500">{MONTH_NAMES[month - 1]}</h2>
-          <span className="text-xs text-purple-300">{year}</span>
+          <h2 className="text-2xl font-black tracking-[-0.02em] text-white">{MONTH_NAMES[month - 1]}</h2>
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-100">{year}</span>
         </div>
         <button
           onClick={onNextMonth}
-          className="w-10 h-10 rounded-full bg-pink-100 hover:bg-pink-200 text-pink-500 transition-colors flex items-center justify-center text-lg font-bold"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-xl font-bold text-white transition-colors hover:bg-white/35 focus:outline-none focus:ring-2 focus:ring-white/70"
         >
           ›
         </button>
       </div>
 
       {/* Day headers */}
-      <div className="grid grid-cols-7 mb-2">
+      <div className="mb-3 grid grid-cols-7">
         {DAY_NAMES.map(d => (
-          <div key={d} className="text-center text-xs font-semibold text-purple-300 py-1">
+          <div key={d} className="py-1 text-center text-[11px] font-black uppercase tracking-[0.12em] text-purple-400">
             {d}
           </div>
         ))}
       </div>
 
       {/* Day cells */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-2 sm:gap-3">
         {cells.map((day, idx) => {
           if (!day) return <div key={`empty-${idx}`} />;
           const dateStr = `${year}-${pad(month)}-${pad(day)}`;
           const hangout = hangoutMap[dateStr];
           const isToday = dateStr === todayStr;
           const count = hangout ? getAttendanceCount(hangout) : 0;
-          const total = hangout ? Math.max(hangout.attendance.length, totalMembers) : totalMembers;
+          const total = totalMembers;
+          const isHovered = hoveredDate === dateStr;
 
           return (
             <button
               key={dateStr}
               onClick={() => onDayClick(dateStr)}
+              onMouseEnter={() => setHoveredDate(dateStr)}
+              onMouseLeave={() => setHoveredDate(null)}
               className={`
-                relative rounded-2xl p-1 flex flex-col items-center min-h-[60px] transition-all
-                hover:scale-105 hover:shadow-md
+                relative flex min-h-[112px] flex-col items-center overflow-hidden rounded-2xl border border-pink-100 p-2 transition-all sm:min-h-[132px]
+                hover:scale-105 hover:shadow-lg overflow-hidden border border-pink-100
                 ${isToday
                   ? 'ring-2 ring-pink-300 bg-pink-50'
                   : hangout
@@ -106,10 +100,15 @@ export default function Calendar({ year, month, hangouts, onDayClick, onPrevMont
                   : 'hover:bg-pink-50'
                 }
               `}
+              style={hangout?.photo_url ? {
+                backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url(${hangout.photo_url})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              } : undefined}
             >
               <span className={`
-                text-sm font-medium mb-1
-                ${isToday ? 'text-pink-500 font-bold' : 'text-gray-600'}
+                text-xl font-bold mb-1 z-10
+                ${hangout?.photo_url ? 'text-white drop-shadow' : isToday ? 'text-pink-500' : 'text-gray-700'}
               `}>
                 {day}
               </span>
@@ -117,18 +116,27 @@ export default function Calendar({ year, month, hangouts, onDayClick, onPrevMont
               {hangout ? (
                 <>
                   <span className={`
-                    text-[10px] font-bold px-1.5 py-0.5 rounded-full
-                    ${getCountColor(count, total)}
+                    text-[10px] font-bold px-1.5 py-0.5 rounded-full z-10
+                    ${hangout?.photo_url ? 'bg-black/50 text-white' : 'bg-purple-100 text-purple-600'}
                   `}>
                     {count}/{total}
                   </span>
+                  <span className="mt-2 flex flex-wrap justify-center gap-1 text-lg leading-none z-10">
+                    {members
+                      .filter(member => hangout.attendance.some(record =>
+                        record.person_name === member.name && (record.present === 1 || record.present === true)
+                      ))
+                      .map(member => (
+                        <span key={member.name} className="drop-shadow-sm" title={member.name}>{member.emoji}</span>
+                      ))}
+                  </span>
                 </>
               ) : (
-                <span className="text-[10px] text-gray-300">+</span>
+                <span className="text-sm text-gray-400 z-10">+</span>
               )}
 
-              {hangout?.label && (
-                <span className="text-[9px] text-purple-400 mt-0.5 truncate w-full text-center leading-tight">
+              {hangout?.label && isHovered && (
+                <span className="absolute inset-x-1 bottom-1 bg-black/75 text-white text-[10px] p-1.5 rounded-xl z-20 text-center backdrop-blur-sm">
                   {hangout.label}
                 </span>
               )}
@@ -137,19 +145,6 @@ export default function Calendar({ year, month, hangouts, onDayClick, onPrevMont
         })}
       </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-3 mt-4 justify-center">
-        {[
-          { label: 'None', cls: 'bg-rose-100 text-rose-400' },
-          { label: 'Some', cls: 'bg-yellow-100 text-yellow-500' },
-          { label: 'Most', cls: 'bg-purple-100 text-purple-500' },
-          { label: 'All!', cls: 'bg-green-100 text-green-600' },
-        ].map(l => (
-          <span key={l.label} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${l.cls}`}>
-            {l.label}
-          </span>
-        ))}
-      </div>
     </div>
   );
 }

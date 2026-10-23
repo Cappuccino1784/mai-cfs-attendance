@@ -14,6 +14,10 @@ body {
   margin: 0;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(circle at 8% 8%, rgba(244, 114, 182, 0.18), transparent 28rem),
+    radial-gradient(circle at 92% 18%, rgba(192, 132, 252, 0.18), transparent 30rem),
+    #fff7fb;
 }
 
 #root {
@@ -30,4 +34,9 @@ body {
 
 .animate-in {
   animation: animate-in 0.2s ease-out;
+}
+
+::selection {
+  background: #f9a8d4;
+  color: #581c87;
 }

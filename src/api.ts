@@ -20,11 +20,13 @@ function buildFormData(body: {
   date?: string;
   label?: string;
   attendance?: { person_name: string; present: boolean }[];
+  photo?: File | null;
 }) {
   const fd = new FormData();
   if (body.date) fd.append('date', body.date);
   if (body.label !== undefined) fd.append('label', body.label);
   if (body.attendance) fd.append('attendance', JSON.stringify(body.attendance));
+  if (body.photo) fd.append('photo', body.photo);
   return fd;
 }
 
@@ -42,6 +44,7 @@ export const api = {
     date: string;
     label?: string;
     attendance: { person_name: string; present: boolean }[];
+    photo?: File | null;
   }) =>
     req<import('./types').Hangout>('/hangouts', {
       method: 'POST',
@@ -53,6 +56,7 @@ export const api = {
     body: {
       label?: string;
       attendance?: { person_name: string; present: boolean }[];
+      photo?: File | null;
     }
   ) =>
     req<import('./types').Hangout>(`/hangouts/${id}`, {

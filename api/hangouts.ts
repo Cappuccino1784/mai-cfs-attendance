@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { IncomingForm, type Fields, type Files } from 'formidable';
+import { IncomingForm, type Fields, type Files, type File as FormidableFile } from 'formidable';
+import { readFileSync } from 'fs';
 import { getClient, initDB } from './_db.js';
 
 export const config = { api: { bodyParser: false } };
@@ -45,6 +46,17 @@ async function withAttendance(id: number) {
   return { ...hangout, attendance: attendance ?? [] };
 }
 
+async function uploadPhoto(file: FormidableFile, date: string) {
+  const db = getClient();
+  const path = `hangouts/${date}-${Date.now()}`;
+  const { error } = await db.storage.from('hangout-photos').upload(path, readFileSync(file.filepath), {
+    contentType: file.mimetype ?? 'image/jpeg',
+    upsert: false,
+  });
+  if (error) throw error;
+  return db.storage.from('hangout-photos').getPublicUrl(path).data.publicUrl;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -71,12 +83,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
-      const { fields } = await parseForm(req);
+      const { fields, files } = await parseForm(req);
       const date = field(fields, 'date');
       if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'date must be in YYYY-MM-DD format' });
       const attendance = parseAttendance(field(fields, 'attendance'));
+      const photoFile = Array.isArray(files.photo) ? files.photo[0] : files.photo;
+      const photo_url = photoFile?.filepath
+        ? await uploadPhoto(photoFile, date)
+        : null;
       const { data: hangout, error } = await db.from('hangouts').insert({
-        date, label: field(fields, 'label') || null,
+        date, label: field(fields, 'label') || null, photo_url,
       }).select('id').single();
       if (error) throw error;
       if (attendance.length) {
