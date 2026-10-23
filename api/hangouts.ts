@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { IncomingForm, type Fields, type Files } from 'formidable';
-import { getClient, initDB } from './_db';
+import { getClient, initDB } from './_db.js';
 
 export const config = { api: { bodyParser: false } };
 type AttendanceInput = { person_name: string; present: boolean };
