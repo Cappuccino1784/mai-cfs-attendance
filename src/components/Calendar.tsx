@@ -122,7 +122,7 @@ export default function Calendar({ year, month, hangouts, onDayClick, onPrevMont
                   `}>
                     {count}/{total}
                   </span>
-                  {hangout.photo_path && (
+                  {hangout.photo_url && (
                     <span className="text-[10px] mt-0.5" title="Has photo">📷</span>
                   )}
                 </>

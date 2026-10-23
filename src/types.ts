@@ -16,7 +16,7 @@ export interface Hangout {
   id: number;
   date: string; // YYYY-MM-DD
   label: string | null;
-  photo_path: string | null; // e.g. /uploads/123456.jpg
+  photo_url: string | null; // Vercel Blob public URL
   created_at: string;
   attendance: AttendanceRecord[];
 }

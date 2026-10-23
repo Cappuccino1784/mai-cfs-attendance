@@ -75,7 +75,7 @@ export default function AttendanceModal({ date, hangout, members, onClose, onSav
   };
 
   // Resolve what photo to display in the preview area
-  const displayPhoto = photoPreview ?? (removePhoto ? null : hangout?.photo_path ?? null);
+  const displayPhoto = photoPreview ?? (removePhoto ? null : hangout?.photo_url ?? null);
 
   const handleSave = async () => {
     setSaving(true);
