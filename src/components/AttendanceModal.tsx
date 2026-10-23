@@ -5,6 +5,7 @@ interface Props {
   date: string;
   hangout: Hangout | null;
   members: Member[];
+  error?: string | null;
   onClose: () => void;
   onSave: (
     date: string,
@@ -23,7 +24,7 @@ function formatDate(dateStr: string) {
   });
 }
 
-export default function AttendanceModal({ date, hangout, members, onClose, onSave, onDelete }: Props) {
+export default function AttendanceModal({ date, hangout, members, error, onClose, onSave, onDelete }: Props) {
   const [label, setLabel] = useState(hangout?.label ?? '');
   const [present, setPresent] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
@@ -190,7 +191,12 @@ export default function AttendanceModal({ date, hangout, members, onClose, onSav
               </span>
             </div>
 
-            <div className="flex flex-col gap-2">
+            {members.length === 0 ? (
+              <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-500">
+                No members loaded. Check the Turso environment variables and reload the page.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
               {members.map(m => (
                 <button
                   key={m.name}
@@ -216,7 +222,13 @@ export default function AttendanceModal({ date, hangout, members, onClose, onSav
                   </span>
                 </button>
               ))}
-            </div>
+              </div>
+            )}
+            {error && (
+              <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-500">
+                {error}
+              </p>
+            )}
           </div>
         </div>
 

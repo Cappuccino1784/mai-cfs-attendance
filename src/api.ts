@@ -1,8 +1,9 @@
 // When deployed on Vercel (frontend + API in same project), BASE defaults to '/api'.
 // For local dev, set VITE_API_URL in .env.local to your Vercel preview URL,
 // or use `vercel dev` which runs both the frontend and API routes together.
-const BASE = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL}/api`
+const configuredApiUrl = import.meta.env.VITE_API_URL?.replace(/\/+$/, '');
+const BASE = configuredApiUrl
+  ? configuredApiUrl.endsWith('/api') ? configuredApiUrl : `${configuredApiUrl}/api`
   : '/api';
 
 async function req<T>(path: string, options?: RequestInit): Promise<T> {

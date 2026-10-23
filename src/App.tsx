@@ -15,9 +15,11 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedHangout, setSelectedHangout] = useState<Hangout | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const [m, h, s] = await Promise.all([
         api.getMembers(),
@@ -29,6 +31,7 @@ export default function App() {
       setStats(s);
     } catch (e) {
       console.error(e);
+      setError(e instanceof Error ? e.message : 'Unable to load attendance data');
     } finally {
       setLoading(false);
     }
@@ -54,19 +57,30 @@ export default function App() {
     photo?: File | null,
     removePhoto?: boolean
   ) => {
-    if (selectedHangout) {
-      await api.updateHangout(selectedHangout.id, { label, attendance, photo, removePhoto });
-    } else {
-      await api.createHangout({ date, label, attendance, photo });
+    try {
+      if (selectedHangout) {
+        await api.updateHangout(selectedHangout.id, { label, attendance, photo, removePhoto });
+      } else {
+        await api.createHangout({ date, label, attendance, photo });
+      }
+      await fetchAll();
+      handleModalClose();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Unable to save attendance';
+      setError(message);
+      throw e;
     }
-    await fetchAll();
-    handleModalClose();
   };
 
   const handleDelete = async (id: number) => {
-    await api.deleteHangout(id);
-    await fetchAll();
-    handleModalClose();
+    try {
+      await api.deleteHangout(id);
+      await fetchAll();
+      handleModalClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to delete hangout');
+      throw e;
+    }
   };
 
   return (
@@ -79,6 +93,11 @@ export default function App() {
           </div>
         ) : (
           <>
+            {error && (
+              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                {error}
+              </div>
+            )}
             <Calendar
               year={currentYear}
               month={currentMonth}
@@ -105,6 +124,7 @@ export default function App() {
           date={selectedDate}
           hangout={selectedHangout}
           members={members}
+          error={error}
           onClose={handleModalClose}
           onSave={handleSave}
           onDelete={handleDelete}
