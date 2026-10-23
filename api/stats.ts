@@ -13,23 +13,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await initDB();
     const client = getClient();
 
-    const membersResult = await client.execute('SELECT * FROM members ORDER BY id');
-    const totalResult = await client.execute('SELECT COUNT(*) as count FROM hangouts');
-    const totalHangouts = Number((totalResult.rows[0] as Record<string, unknown>)['count'] ?? 0);
+    const { data: members, error: membersError } = await client.from('members').select('*').order('id');
+    const { count: totalHangouts, error: hangoutsError } = await client
+      .from('hangouts')
+      .select('id', { count: 'exact', head: true });
+    if (membersError) throw membersError;
+    if (hangoutsError) throw hangoutsError;
 
-    const members = await Promise.all(
-      membersResult.rows.map(async (m: unknown) => {
-        const row = m as Record<string, unknown>;
-        const attendedResult = await client.execute({
-          sql: 'SELECT COUNT(*) as count FROM attendance WHERE person_name = ? AND present = 1',
-          args: [row['name'] as string],
-        });
-        const attended = Number((attendedResult.rows[0] as Record<string, unknown>)['count'] ?? 0);
-        return { ...row, attended, total: totalHangouts };
+    const memberStats = await Promise.all(
+      (members ?? []).map(async (row) => {
+        const { count: attended, error } = await client
+          .from('attendance')
+          .select('id', { count: 'exact', head: true })
+          .eq('person_name', row.name)
+          .eq('present', true);
+        if (error) throw error;
+        return { ...row, attended: attended ?? 0, total: totalHangouts ?? 0 };
       })
     );
 
-    return res.json({ totalHangouts, members });
+    return res.json({ totalHangouts: totalHangouts ?? 0, members: memberStats });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Internal server error';
     return res.status(500).json({ error: message });

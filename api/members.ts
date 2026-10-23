@@ -11,8 +11,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     await initDB();
-    const result = await getClient().execute('SELECT * FROM members ORDER BY id');
-    return res.json(result.rows);
+    const { data, error } = await getClient().from('members').select('*').order('id');
+    if (error) throw error;
+    return res.json(data);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Internal server error';
     return res.status(500).json({ error: message });

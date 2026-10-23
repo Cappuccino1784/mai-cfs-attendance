@@ -1,186 +1,110 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { IncomingForm, Fields, Files } from 'formidable';
+import { IncomingForm, type Fields, type Files } from 'formidable';
 import { readFileSync } from 'fs';
-import { put, del } from '@vercel/blob';
+import { del, put } from '@vercel/blob';
 import { getClient, initDB } from '../_db';
 
-// Disable Vercel's body parser so formidable can parse multipart
 export const config = { api: { bodyParser: false } };
+type AttendanceInput = { person_name: string; present: boolean };
 
-type Row = Record<string, unknown>;
-
-async function parseForm(req: VercelRequest): Promise<{ fields: Fields; files: Files }> {
+function parseForm(req: VercelRequest): Promise<{ fields: Fields; files: Files }> {
   return new Promise((resolve, reject) => {
-    const form = new IncomingForm({ maxFileSize: 10 * 1024 * 1024 });
-    form.parse(req as Parameters<typeof form.parse>[0], (err, fields, files) => {
-      if (err) reject(err);
+    new IncomingForm({ maxFileSize: 10 * 1024 * 1024 }).parse(req as never, (error, fields, files) => {
+      if (error) reject(error);
       else resolve({ fields, files });
     });
   });
 }
 
-function firstField(fields: Fields, key: string): string | undefined {
-  const v = fields[key];
-  return Array.isArray(v) ? v[0] : v ?? undefined;
+function field(fields: Fields, key: string): string | undefined {
+  const value = fields[key];
+  return Array.isArray(value) ? value[0] : value;
 }
 
-function parseAttendance(value: string | undefined): { person_name: string; present: boolean }[] {
+function parseAttendance(value?: string): AttendanceInput[] {
   if (!value) return [];
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(value);
-  } catch {
-    throw new Error('attendance must be valid JSON');
-  }
+  const parsed: unknown = JSON.parse(value);
   if (!Array.isArray(parsed)) throw new Error('attendance must be an array');
-  return parsed.map((entry) => {
+  return parsed.map((item) => {
     if (
-      typeof entry !== 'object' ||
-      entry === null ||
-      typeof (entry as Record<string, unknown>).person_name !== 'string' ||
-      typeof (entry as Record<string, unknown>).present !== 'boolean'
-    ) {
-      throw new Error('attendance contains an invalid record');
-    }
-    return entry as { person_name: string; present: boolean };
+      typeof item !== 'object' || item === null ||
+      typeof (item as Record<string, unknown>).person_name !== 'string' ||
+      typeof (item as Record<string, unknown>).present !== 'boolean'
+    ) throw new Error('attendance contains an invalid record');
+    return item as AttendanceInput;
   });
 }
 
-async function withAttendance(hangoutId: number): Promise<Row & { attendance: Row[] }> {
-  const client = getClient();
-  const [hangoutRes, attRes] = await Promise.all([
-    client.execute({ sql: 'SELECT * FROM hangouts WHERE id = ?', args: [hangoutId] }),
-    client.execute({ sql: 'SELECT * FROM attendance WHERE hangout_id = ?', args: [hangoutId] }),
-  ]);
-  return { ...(hangoutRes.rows[0] as Row), attendance: attRes.rows as Row[] };
+async function withAttendance(id: number) {
+  const db = getClient();
+  const [{ data: hangout, error: hangoutError }, { data: attendance, error: attendanceError }] =
+    await Promise.all([
+      db.from('hangouts').select('*').eq('id', id).single(),
+      db.from('attendance').select('*').eq('hangout_id', id).order('id'),
+    ]);
+  if (hangoutError) throw hangoutError;
+  if (attendanceError) throw attendanceError;
+  return { ...hangout, attendance: attendance ?? [] };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
   if (req.method === 'OPTIONS') return res.status(204).end();
 
-  const id = Number(req.query['id']);
-  if (!id || isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
+  const id = Number(req.query.id);
+  if (!Number.isInteger(id) || id < 1) return res.status(400).json({ error: 'Invalid id' });
 
-  // ── GET /api/hangouts/:id ──────────────────────────────────────────────────
-  if (req.method === 'GET') {
-    try {
-      await initDB();
-      const client = getClient();
-      const hangoutRes = await client.execute({
-        sql: 'SELECT * FROM hangouts WHERE id = ?',
-        args: [id],
-      });
-      if (hangoutRes.rows.length === 0) return res.status(404).json({ error: 'Not found' });
-      return res.json(await withAttendance(id));
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Internal server error';
-      return res.status(500).json({ error: message });
-    }
-  }
+  try {
+    await initDB();
+    const db = getClient();
+    const { data: existing, error: existingError } = await db.from('hangouts').select('*').eq('id', id).maybeSingle();
+    if (existingError) throw existingError;
+    if (!existing) return res.status(404).json({ error: 'Not found' });
 
-  // ── PUT /api/hangouts/:id ──────────────────────────────────────────────────
-  if (req.method === 'PUT') {
-    try {
-      await initDB();
-      const client = getClient();
-      const hangoutRes = await client.execute({
-        sql: 'SELECT * FROM hangouts WHERE id = ?',
-        args: [id],
-      });
-      if (hangoutRes.rows.length === 0) return res.status(404).json({ error: 'Not found' });
-      const hangout = hangoutRes.rows[0] as Row;
+    if (req.method === 'GET') return res.json(await withAttendance(id));
 
+    if (req.method === 'PUT') {
       const { fields, files } = await parseForm(req);
-      const label = firstField(fields, 'label');
-      const removePhoto = firstField(fields, 'removePhoto') === 'true';
-      let attendance: { person_name: string; present: boolean }[];
-      try {
-        attendance = parseAttendance(firstField(fields, 'attendance'));
-      } catch (err) {
-        return res.status(400).json({ error: err instanceof Error ? err.message : 'Invalid attendance' });
+      const attendance = parseAttendance(field(fields, 'attendance'));
+      const photoFile = Array.isArray(files.photo) ? files.photo[0] : files.photo;
+      let photo_url = existing.photo_url as string | null;
+
+      if (photoFile?.filepath) {
+        if (!photoFile.mimetype?.startsWith('image/')) return res.status(400).json({ error: 'photo must be an image' });
+        if (photo_url) await del(photo_url);
+        photo_url = (await put(`hangouts/${existing.date}-${Date.now()}`, readFileSync(photoFile.filepath), { access: 'public' })).url;
+      } else if (field(fields, 'removePhoto') === 'true') {
+        if (photo_url) await del(photo_url);
+        photo_url = null;
       }
 
-      let photoUrl = hangout['photo_url'] as string | null;
+      const { error } = await db.from('hangouts').update({
+        label: field(fields, 'label') ?? existing.label,
+        photo_url,
+      }).eq('id', id);
+      if (error) throw error;
 
-      const photoFile = Array.isArray(files['photo']) ? files['photo'][0] : files['photo'];
-      if (photoFile && photoFile.filepath) {
-        if (!photoFile.mimetype?.startsWith('image/')) {
-          return res.status(400).json({ error: 'photo must be an image' });
-        }
-        if (photoUrl) {
-          await del(photoUrl);
-        }
-        const buffer = readFileSync(photoFile.filepath);
-        const filename = `hangouts/${hangout['date']}-${Date.now()}${
-          photoFile.originalFilename ? `-${photoFile.originalFilename}` : '.jpg'
-        }`;
-        const blob = await put(filename, buffer, { access: 'public' });
-        photoUrl = blob.url;
-      } else if (removePhoto) {
-        if (photoUrl) {
-          await del(photoUrl);
-        }
-        photoUrl = null;
+      for (const item of attendance) {
+        const { error: attendanceError } = await db.from('attendance').upsert({
+          hangout_id: id, person_name: item.person_name, present: item.present,
+        }, { onConflict: 'hangout_id,person_name' });
+        if (attendanceError) throw attendanceError;
       }
-
-      await client.execute({
-        sql: 'UPDATE hangouts SET label = ?, photo_url = ? WHERE id = ?',
-        args: [
-          label !== undefined ? (label || null) : (hangout['label'] as string | null),
-          photoUrl,
-          id,
-        ],
-      });
-
-      // Upsert attendance if provided
-      for (const a of attendance) {
-        await client.execute({
-          sql: `INSERT INTO attendance (hangout_id, person_name, present)
-                VALUES (?, ?, ?)
-                ON CONFLICT(hangout_id, person_name) DO UPDATE SET present = excluded.present`,
-          args: [id, a.person_name, a.present ? 1 : 0],
-        });
-      }
-
       return res.json(await withAttendance(id));
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Internal server error';
-      return res.status(500).json({ error: message });
     }
-  }
 
-  // ── DELETE /api/hangouts/:id ───────────────────────────────────────────────
-  if (req.method === 'DELETE') {
-    try {
-      await initDB();
-      const client = getClient();
-      const hangoutRes = await client.execute({
-        sql: 'SELECT * FROM hangouts WHERE id = ?',
-        args: [id],
-      });
-      if (hangoutRes.rows.length === 0) return res.status(404).json({ error: 'Not found' });
-      const hangout = hangoutRes.rows[0] as Row;
-
-      const photoUrl = hangout['photo_url'] as string | null;
-      if (photoUrl) {
-        await del(photoUrl);
-      }
-
-      await client.batch([
-        { sql: 'DELETE FROM attendance WHERE hangout_id = ?', args: [id] },
-        { sql: 'DELETE FROM hangouts WHERE id = ?', args: [id] },
-      ], 'write');
-
+    if (req.method === 'DELETE') {
+      if (existing.photo_url) await del(existing.photo_url);
+      const { error } = await db.from('hangouts').delete().eq('id', id);
+      if (error) throw error;
       return res.json({ success: true });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Internal server error';
-      return res.status(500).json({ error: message });
     }
-  }
 
-  return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed' });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return res.status(500).json({ error: message });
+  }
 }
