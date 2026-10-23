@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import type { Member, Hangout } from '../types';
 
 interface Props {
@@ -10,9 +10,7 @@ interface Props {
   onSave: (
     date: string,
     attendance: { person_name: string; present: boolean }[],
-    label?: string,
-    photo?: File | null,
-    removePhoto?: boolean
+    label?: string
   ) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
 }
@@ -31,13 +29,6 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Photo state
-  const [photoFile, setPhotoFile] = useState<File | null>(null);       // newly chosen file
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null); // preview URL
-  const [removePhoto, setRemovePhoto] = useState(false);               // flag to delete existing
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Initialize presence & photo
   useEffect(() => {
     const initial: Record<string, boolean> = {};
     if (hangout) {
@@ -46,43 +37,15 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
     for (const m of members) if (!(m.name in initial)) initial[m.name] = false;
     setPresent(initial);
     setLabel(hangout?.label ?? '');
-    setPhotoFile(null);
-    setPhotoPreview(null);
-    setRemovePhoto(false);
   }, [hangout, members]);
 
-  // Clean up object URLs
-  useEffect(() => {
-    return () => { if (photoPreview && photoPreview.startsWith('blob:')) URL.revokeObjectURL(photoPreview); };
-  }, [photoPreview]);
-
   const toggle = (name: string) => setPresent(p => ({ ...p, [name]: !p[name] }));
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (photoPreview && photoPreview.startsWith('blob:')) URL.revokeObjectURL(photoPreview);
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
-    setRemovePhoto(false);
-  };
-
-  const handleRemovePhoto = () => {
-    if (photoPreview && photoPreview.startsWith('blob:')) URL.revokeObjectURL(photoPreview);
-    setPhotoFile(null);
-    setPhotoPreview(null);
-    setRemovePhoto(true);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  // Resolve what photo to display in the preview area
-  const displayPhoto = photoPreview ?? (removePhoto ? null : hangout?.photo_url ?? null);
 
   const handleSave = async () => {
     setSaving(true);
     try {
       const attendance = members.map(m => ({ person_name: m.name, present: present[m.name] ?? false }));
-      await onSave(date, attendance, label || undefined, photoFile, removePhoto);
+      await onSave(date, attendance, label || undefined);
     } finally {
       setSaving(false);
     }
@@ -133,54 +96,6 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
 
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1 px-6 py-5 flex flex-col gap-5">
-
-          {/* ── Photo section ─────────────────────────────────────────────── */}
-          <div>
-            <p className="text-sm font-semibold text-purple-400 mb-2">Hangout photo 📷</p>
-
-            {displayPhoto ? (
-              <div className="relative rounded-2xl overflow-hidden border-2 border-pink-200 shadow-md">
-                <img
-                  src={displayPhoto}
-                  alt="Hangout"
-                  className="w-full h-48 object-cover"
-                />
-                <div className="absolute top-2 right-2 flex gap-1.5">
-                  {/* Replace button */}
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="bg-white/80 backdrop-blur-sm text-purple-500 text-xs font-semibold px-2.5 py-1 rounded-full shadow hover:bg-white transition-all"
-                  >
-                    ✏️ Change
-                  </button>
-                  {/* Remove button */}
-                  <button
-                    onClick={handleRemovePhoto}
-                    className="bg-white/80 backdrop-blur-sm text-red-400 text-xs font-semibold px-2.5 py-1 rounded-full shadow hover:bg-white transition-all"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full h-32 rounded-2xl border-2 border-dashed border-pink-200 bg-pink-50/50 hover:bg-pink-100/60 transition-colors flex flex-col items-center justify-center gap-2 text-pink-400"
-              >
-                <span className="text-3xl">🖼️</span>
-                <span className="text-xs font-medium">Click to add a photo</span>
-                <span className="text-[10px] text-pink-300">JPG, PNG, WEBP — up to 10 MB</span>
-              </button>
-            )}
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-          </div>
 
           {/* ── Attendance section ─────────────────────────────────────────── */}
           <div>

@@ -1,7 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { IncomingForm, type Fields, type Files } from 'formidable';
-import { readFileSync } from 'fs';
-import { put } from '@vercel/blob';
 import { getClient, initDB } from './_db';
 
 export const config = { api: { bodyParser: false } };
@@ -73,19 +71,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
-      const { fields, files } = await parseForm(req);
+      const { fields } = await parseForm(req);
       const date = field(fields, 'date');
       if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'date must be in YYYY-MM-DD format' });
       const attendance = parseAttendance(field(fields, 'attendance'));
-      const photoFile = Array.isArray(files.photo) ? files.photo[0] : files.photo;
-      let photo_url: string | null = null;
-      if (photoFile?.filepath) {
-        if (!photoFile.mimetype?.startsWith('image/')) return res.status(400).json({ error: 'photo must be an image' });
-        const blob = await put(`hangouts/${date}-${Date.now()}`, readFileSync(photoFile.filepath), { access: 'public' });
-        photo_url = blob.url;
-      }
       const { data: hangout, error } = await db.from('hangouts').insert({
-        date, label: field(fields, 'label') || null, photo_url,
+        date, label: field(fields, 'label') || null,
       }).select('id').single();
       if (error) throw error;
       if (attendance.length) {

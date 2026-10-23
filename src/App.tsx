@@ -53,15 +53,13 @@ export default function App() {
   const handleSave = async (
     date: string,
     attendance: { person_name: string; present: boolean }[],
-    label?: string,
-    photo?: File | null,
-    removePhoto?: boolean
+    label?: string
   ) => {
     try {
       if (selectedHangout) {
-        await api.updateHangout(selectedHangout.id, { label, attendance, photo, removePhoto });
+        await api.updateHangout(selectedHangout.id, { label, attendance });
       } else {
-        await api.createHangout({ date, label, attendance, photo });
+        await api.createHangout({ date, label, attendance });
       }
       await fetchAll();
       handleModalClose();

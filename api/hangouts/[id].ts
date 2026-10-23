@@ -1,7 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { IncomingForm, type Fields, type Files } from 'formidable';
-import { readFileSync } from 'fs';
-import { del, put } from '@vercel/blob';
 import { getClient, initDB } from '../_db';
 
 export const config = { api: { bodyParser: false } };
@@ -66,23 +64,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'GET') return res.json(await withAttendance(id));
 
     if (req.method === 'PUT') {
-      const { fields, files } = await parseForm(req);
+      const { fields } = await parseForm(req);
       const attendance = parseAttendance(field(fields, 'attendance'));
-      const photoFile = Array.isArray(files.photo) ? files.photo[0] : files.photo;
-      let photo_url = existing.photo_url as string | null;
-
-      if (photoFile?.filepath) {
-        if (!photoFile.mimetype?.startsWith('image/')) return res.status(400).json({ error: 'photo must be an image' });
-        if (photo_url) await del(photo_url);
-        photo_url = (await put(`hangouts/${existing.date}-${Date.now()}`, readFileSync(photoFile.filepath), { access: 'public' })).url;
-      } else if (field(fields, 'removePhoto') === 'true') {
-        if (photo_url) await del(photo_url);
-        photo_url = null;
-      }
-
       const { error } = await db.from('hangouts').update({
         label: field(fields, 'label') ?? existing.label,
-        photo_url,
       }).eq('id', id);
       if (error) throw error;
 
@@ -96,7 +81,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'DELETE') {
-      if (existing.photo_url) await del(existing.photo_url);
       const { error } = await db.from('hangouts').delete().eq('id', id);
       if (error) throw error;
       return res.json({ success: true });
