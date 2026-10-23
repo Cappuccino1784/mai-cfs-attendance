@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { IncomingForm, Fields, Files } from 'formidable';
 import { readFileSync } from 'fs';
 import { put, del } from '@vercel/blob';
-import { client, initDB } from '../_db';
+import { getClient, initDB } from '../_db';
 
 // Disable Vercel's body parser so formidable can parse multipart
 export const config = { api: { bodyParser: false } };
@@ -47,6 +47,7 @@ function parseAttendance(value: string | undefined): { person_name: string; pres
 }
 
 async function withAttendance(hangoutId: number): Promise<Row & { attendance: Row[] }> {
+  const client = getClient();
   const [hangoutRes, attRes] = await Promise.all([
     client.execute({ sql: 'SELECT * FROM hangouts WHERE id = ?', args: [hangoutId] }),
     client.execute({ sql: 'SELECT * FROM attendance WHERE hangout_id = ?', args: [hangoutId] }),
@@ -68,6 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
     try {
       await initDB();
+      const client = getClient();
       const hangoutRes = await client.execute({
         sql: 'SELECT * FROM hangouts WHERE id = ?',
         args: [id],
@@ -84,6 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'PUT') {
     try {
       await initDB();
+      const client = getClient();
       const hangoutRes = await client.execute({
         sql: 'SELECT * FROM hangouts WHERE id = ?',
         args: [id],
@@ -154,6 +157,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'DELETE') {
     try {
       await initDB();
+      const client = getClient();
       const hangoutRes = await client.execute({
         sql: 'SELECT * FROM hangouts WHERE id = ?',
         args: [id],

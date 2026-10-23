@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { client, initDB } from './_db';
+import { getClient, initDB } from './_db';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,6 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     await initDB();
+    const client = getClient();
 
     const membersResult = await client.execute('SELECT * FROM members ORDER BY id');
     const totalResult = await client.execute('SELECT COUNT(*) as count FROM hangouts');

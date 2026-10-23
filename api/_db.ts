@@ -1,16 +1,17 @@
 import { createClient } from '@libsql/client';
 
-const tursoUrl = process.env.TURSO_URL;
-const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
+import type { Client } from '@libsql/client';
 
-if (!tursoUrl) {
-  throw new Error('TURSO_URL is not configured');
+let client: Client | undefined;
+
+export function getClient(): Client {
+  if (!client) {
+    const tursoUrl = process.env.TURSO_URL;
+    if (!tursoUrl) throw new Error('TURSO_URL is not configured');
+    client = createClient({ url: tursoUrl, authToken: process.env.TURSO_AUTH_TOKEN });
+  }
+  return client;
 }
-
-export const client = createClient({
-  url: tursoUrl,
-  authToken: tursoAuthToken,
-});
 
 const DEFAULT_MEMBERS = [
   { name: 'Anh Minh',  color: '#f9a8d4', emoji: '🌸' },
@@ -28,7 +29,8 @@ export function initDB(): Promise<void> {
 }
 
 async function initializeDB(): Promise<void> {
-  await client.batch([
+  const db = getClient();
+  await db.batch([
     {
       sql: `CREATE TABLE IF NOT EXISTS hangouts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,11 +67,11 @@ async function initializeDB(): Promise<void> {
     },
   ], 'write');
 
-  const result = await client.execute('SELECT COUNT(*) as count FROM members');
+  const result = await db.execute('SELECT COUNT(*) as count FROM members');
   const count = Number((result.rows[0] as Record<string, unknown>)['count'] ?? 0);
 
   if (count === 0) {
-    await client.batch(
+    await db.batch(
       DEFAULT_MEMBERS.map((member) => ({
         sql: 'INSERT OR IGNORE INTO members (name, color, emoji) VALUES (?, ?, ?)',
         args: [member.name, member.color, member.emoji],
