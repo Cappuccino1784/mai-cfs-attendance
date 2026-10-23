@@ -91,8 +91,7 @@ export default function Calendar({ year, month, hangouts, members, onDayClick, o
               onMouseEnter={() => setHoveredDate(dateStr)}
               onMouseLeave={() => setHoveredDate(null)}
               className={`
-                relative flex min-h-[112px] flex-col items-center overflow-hidden rounded-2xl border border-pink-100 p-2 transition-all sm:min-h-[132px]
-                hover:scale-105 hover:shadow-lg overflow-hidden border border-pink-100
+                relative flex min-h-[112px] flex-col items-center overflow-hidden rounded-2xl border border-pink-100 p-2 transition-all hover:scale-105 hover:shadow-lg sm:min-h-[132px]
                 ${isToday
                   ? 'ring-2 ring-pink-300 bg-pink-50'
                   : hangout
@@ -100,6 +99,7 @@ export default function Calendar({ year, month, hangouts, members, onDayClick, o
                   : 'hover:bg-pink-50'
                 }
               `}
+              aria-label={`${dateStr}${hangout ? `, ${count} of ${total} attended` : ', no hangout recorded'}`}
               style={hangout?.photo_url ? {
                 backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url(${hangout.photo_url})`,
                 backgroundSize: 'cover',
@@ -136,7 +136,7 @@ export default function Calendar({ year, month, hangouts, members, onDayClick, o
               )}
 
               {hangout?.label && isHovered && (
-                <span className="absolute inset-x-1 bottom-1 bg-black/75 text-white text-[10px] p-1.5 rounded-xl z-20 text-center backdrop-blur-sm">
+                <span className="absolute inset-x-1 bottom-1 line-clamp-3 break-words rounded-xl bg-black/75 p-1.5 text-center text-[10px] text-white backdrop-blur-sm z-20">
                   {hangout.label}
                 </span>
               )}

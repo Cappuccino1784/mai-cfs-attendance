@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import { api } from './api';
 import type { Member, Hangout, StatsResponse } from './types';
 import Calendar from './components/Calendar';
 import AttendanceModal from './components/AttendanceModal';
-import StatsChart from './components/StatsChart';
 import Header from './components/Header';
+
+const StatsChart = lazy(() => import('./components/StatsChart'));
 
 export default function App() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -114,7 +115,11 @@ export default function App() {
                 } else { setCurrentMonth(m => m + 1); }
               }}
             />
-            {stats && <StatsChart stats={stats} />}
+            {stats && (
+              <Suspense fallback={<div className="mt-7 h-64 animate-pulse rounded-[2rem] bg-white/60" aria-label="Loading attendance stats" />}>
+                <StatsChart stats={stats} />
+              </Suspense>
+            )}
           </>
         )}
       </main>

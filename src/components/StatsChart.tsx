@@ -12,7 +12,13 @@ import type { StatsResponse } from '../types';
 
 interface Props { stats: StatsResponse; }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface TooltipProps {
+  active?: boolean;
+  payload?: { payload: { emoji: string; attended: number; total: number } }[];
+  label?: string | number;
+}
+
+const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   if (active && payload && payload.length) {
     const d = payload[0].payload;
     return (

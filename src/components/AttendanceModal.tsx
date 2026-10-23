@@ -31,6 +31,7 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -43,13 +44,32 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
     setLabel(hangout?.label ?? '');
     setPhotoFile(null);
     setPhotoPreview(null);
+    setPhotoError(null);
   }, [hangout, members]);
+
+  useEffect(() => {
+    return () => {
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
+    };
+  }, [photoPreview]);
 
   const toggle = (name: string) => setPresent(p => ({ ...p, [name]: !p[name] }));
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('Please choose an image file.');
+      event.target.value = '';
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setPhotoError('Please choose an image smaller than 10 MB.');
+      event.target.value = '';
+      return;
+    }
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoError(null);
     setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
   };
@@ -79,6 +99,9 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(249, 168, 212, 0.25)', backdropFilter: 'blur(6px)' }}
       onClick={e => e.target === e.currentTarget && onClose()}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="attendance-modal-title"
     >
       <div className="w-full max-w-md overflow-hidden rounded-[2rem] border border-pink-200 bg-white shadow-2xl shadow-purple-300/40 animate-in max-h-[90vh] flex flex-col">
 
@@ -87,7 +110,7 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
           <div className="flex items-start justify-between">
             <div>
               <div className="mb-1 text-3xl">🌸</div>
-              <h3 className="text-xl font-black leading-tight text-purple-700">{formatDate(date)}</h3>
+              <h3 id="attendance-modal-title" className="text-xl font-black leading-tight text-purple-700">{formatDate(date)}</h3>
             </div>
             <button
               onClick={onClose}
@@ -126,6 +149,7 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
               </button>
             )}
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+            {photoError && <p className="mt-2 text-xs font-semibold text-red-500" role="alert">{photoError}</p>}
           </div>
 
           {/* ── Attendance section ─────────────────────────────────────────── */}
@@ -139,7 +163,7 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
 
             {members.length === 0 ? (
               <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-500">
-                No members loaded. Check the Turso environment variables and reload the page.
+                No members loaded. Check the database configuration and reload the page.
               </p>
             ) : (
               <div className="flex flex-col gap-2">

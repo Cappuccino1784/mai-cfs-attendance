@@ -7,12 +7,23 @@ const BASE = configuredApiUrl
   : '/api';
 
 async function req<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(BASE + path, options);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || 'Request failed');
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(BASE + path, { ...options, signal: options?.signal ?? controller.signal });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || `Request failed (${res.status})`);
+    }
+    return res.json();
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('The request took too long. Check your connection and try again.', { cause: error });
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
   }
-  return res.json();
 }
 
 /** Build FormData for hangout create/update. */
