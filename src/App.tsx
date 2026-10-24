@@ -84,9 +84,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-peach-50">
-      <Header />
-      <main className="mx-auto max-w-5xl px-4 pb-16">
+    <div className="min-h-screen overflow-x-clip bg-gradient-to-br from-pink-50 via-purple-50 to-peach-50">
+      <Header members={members} />
+      <main className="mx-auto max-w-5xl px-3 pb-[max(3rem,env(safe-area-inset-bottom))] sm:px-4">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="text-4xl animate-bounce">🌸</div>

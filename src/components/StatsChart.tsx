@@ -63,7 +63,7 @@ export default function StatsChart({ stats }: Props) {
   }
 
   return (
-    <div className="rounded-[2rem] border border-purple-200 bg-white/75 p-6 shadow-2xl shadow-purple-200/40 backdrop-blur-sm">
+    <div className="min-w-0 rounded-[1.5rem] border border-purple-200 bg-white/75 p-4 shadow-2xl shadow-purple-200/40 backdrop-blur-sm sm:rounded-[2rem] sm:p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-xl font-black tracking-[-0.02em] text-purple-700">Attendance Stats 🎀</h3>
@@ -92,7 +92,7 @@ export default function StatsChart({ stats }: Props) {
       </div>
 
       {/* Bar chart */}
-      <ResponsiveContainer width="100%" height={220}>
+      <ResponsiveContainer width="100%" height={220} minWidth={0}>
         <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0e8f5" vertical={false} />
           <XAxis

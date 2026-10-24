@@ -6,11 +6,15 @@ Install dependencies, copy `.env.local.example` to `.env.local`, add the Supabas
 credentials, then run:
 
 ```bash
-npm run dev:vercel
+npm run dev
 ```
 
-This uses `vercel dev` so the React app and `/api` serverless functions run
-together. `npm run dev` starts Vite only and does not provide the `/api` routes.
+This starts Vite at `http://localhost:5173` and a local API server at port
+`8787`. Vite proxies `/api/*` requests to that local API server, so no
+deployment or `vercel dev` is required.
+
+The optional `npm run dev:vercel` command remains available when you need to
+test Vercel's local runtime specifically.
 
 ## Build
 

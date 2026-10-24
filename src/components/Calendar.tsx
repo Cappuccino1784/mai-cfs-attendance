@@ -44,17 +44,17 @@ export default function Calendar({ year, month, hangouts, members, onDayClick, o
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div className="mb-7 rounded-[2rem] border border-pink-200 bg-white/75 p-4 shadow-2xl shadow-pink-200/50 backdrop-blur-sm sm:p-7">
+    <div className="mb-5 rounded-[1.5rem] border border-pink-200 bg-white/75 p-2.5 shadow-2xl shadow-pink-200/50 backdrop-blur-sm sm:mb-7 sm:rounded-[2rem] sm:p-7">
       {/* Month nav */}
-      <div className="mb-7 flex items-center justify-between rounded-2xl bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 px-4 py-3 shadow-lg shadow-purple-200/60">
+      <div className="mb-5 flex items-center justify-between rounded-xl bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 px-2.5 py-2.5 shadow-lg shadow-purple-200/60 sm:mb-7 sm:rounded-2xl sm:px-4 sm:py-3">
         <button
           onClick={onPrevMonth}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-xl font-bold text-white transition-colors hover:bg-white/35 focus:outline-none focus:ring-2 focus:ring-white/70"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-xl font-bold text-white transition-colors hover:bg-white/35 focus:outline-none focus:ring-2 focus:ring-white/70 sm:h-10 sm:w-10"
         >
           ‹
         </button>
         <div className="text-center">
-          <h2 className="text-2xl font-black tracking-[-0.02em] text-white">{MONTH_NAMES[month - 1]}</h2>
+          <h2 className="text-xl font-black tracking-[-0.02em] text-white sm:text-2xl">{MONTH_NAMES[month - 1]}</h2>
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-100">{year}</span>
         </div>
         <button
@@ -66,16 +66,17 @@ export default function Calendar({ year, month, hangouts, members, onDayClick, o
       </div>
 
       {/* Day headers */}
-      <div className="mb-3 grid grid-cols-7">
+      <div className="mb-2 grid grid-cols-7 sm:mb-3">
         {DAY_NAMES.map(d => (
-          <div key={d} className="py-1 text-center text-[11px] font-black uppercase tracking-[0.12em] text-purple-400">
-            {d}
+          <div key={d} className="py-1 text-center text-[9px] font-black uppercase tracking-[0.04em] text-purple-400 sm:text-[11px] sm:tracking-[0.12em]">
+            <span className="sm:hidden">{d.slice(0, 1)}</span>
+            <span className="hidden sm:inline">{d}</span>
           </div>
         ))}
       </div>
 
       {/* Day cells */}
-      <div className="grid grid-cols-7 gap-2 sm:gap-3">
+      <div className="grid grid-cols-7 gap-1 sm:gap-3">
         {cells.map((day, idx) => {
           if (!day) return <div key={`empty-${idx}`} />;
           const dateStr = `${year}-${pad(month)}-${pad(day)}`;
@@ -92,7 +93,7 @@ export default function Calendar({ year, month, hangouts, members, onDayClick, o
               onMouseEnter={() => setHoveredDate(dateStr)}
               onMouseLeave={() => setHoveredDate(null)}
               className={`
-                relative flex min-h-[112px] flex-col items-center overflow-hidden rounded-2xl border border-pink-100 p-2 transition-all hover:scale-105 hover:shadow-lg sm:min-h-[132px]
+                relative flex min-h-[76px] flex-col items-center overflow-hidden rounded-xl border border-pink-100 p-1.5 transition-all hover:scale-105 hover:shadow-lg sm:min-h-[132px] sm:rounded-2xl sm:p-2
                 ${isToday
                   ? 'ring-2 ring-pink-300 bg-pink-50'
                   : hangout
@@ -108,7 +109,7 @@ export default function Calendar({ year, month, hangouts, members, onDayClick, o
               } : undefined}
             >
               <span className={`
-                text-xl font-bold mb-1 z-10
+                text-base font-bold mb-1 z-10 sm:text-xl
                 ${hangout?.photo_url ? 'text-white drop-shadow' : isToday ? 'text-pink-500' : 'text-gray-700'}
               `}>
                 {day}
@@ -117,18 +118,18 @@ export default function Calendar({ year, month, hangouts, members, onDayClick, o
               {hangout ? (
                 <>
                   <span className={`
-                    text-[10px] font-bold px-1.5 py-0.5 rounded-full z-10
+                    text-[9px] font-bold px-1 py-0.5 rounded-full z-10 sm:px-1.5 sm:text-[10px]
                     ${hangout?.photo_url ? 'bg-black/50 text-white' : 'bg-purple-100 text-purple-600'}
                   `}>
                     {count}/{total}
                   </span>
-                  <span className="mt-2 flex flex-wrap justify-center gap-1 text-lg leading-none z-10">
+                  <span className="mt-1 flex max-w-full flex-wrap justify-center gap-0.5 text-lg leading-none z-10 sm:mt-2 sm:gap-1">
                     {members
                       .filter(member => hangout.attendance.some(record =>
                         record.person_name === member.name && (record.present === 1 || record.present === true)
                       ))
                       .map(member => (
-                        <MemberAvatar key={member.name} member={member} className="h-7 w-7 drop-shadow-sm" />
+                        <MemberAvatar key={member.name} member={member} className="h-5 w-5 drop-shadow-sm sm:h-7 sm:w-7" />
                       ))}
                   </span>
                 </>

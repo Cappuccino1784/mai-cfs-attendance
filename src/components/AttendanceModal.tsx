@@ -97,21 +97,21 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center p-2 sm:items-center sm:p-4"
       style={{ background: 'rgba(249, 168, 212, 0.25)', backdropFilter: 'blur(6px)' }}
       onClick={e => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
       aria-labelledby="attendance-modal-title"
     >
-      <div className="w-full max-w-md overflow-hidden rounded-[2rem] border border-pink-200 bg-white shadow-2xl shadow-purple-300/40 animate-in max-h-[90vh] flex flex-col">
+      <div className="flex max-h-[calc(100svh-1rem)] w-full max-w-md flex-col overflow-hidden rounded-[1.5rem] border border-pink-200 bg-white shadow-2xl shadow-purple-300/40 animate-in sm:max-h-[90vh] sm:rounded-[2rem]">
 
         {/* Header */}
-        <div className="flex-shrink-0 bg-gradient-to-br from-pink-200 via-purple-100 to-peach-100 px-6 pb-5 pt-6">
+        <div className="flex-shrink-0 bg-gradient-to-br from-pink-200 via-purple-100 to-peach-100 px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-6">
           <div className="flex items-start justify-between">
             <div>
               <div className="mb-1 text-3xl">🌸</div>
-              <h3 id="attendance-modal-title" className="text-xl font-black leading-tight text-purple-700">{formatDate(date)}</h3>
+              <h3 id="attendance-modal-title" className="max-w-[16rem] text-lg font-black leading-tight text-purple-700 sm:text-xl">{formatDate(date)}</h3>
             </div>
             <button
               onClick={onClose}
@@ -132,13 +132,13 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
         </div>
 
         {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1 px-6 py-5 flex flex-col gap-5">
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 sm:gap-5 sm:px-6 sm:py-5">
 
           {/* ── Attendance section ─────────────────────────────────────────── */}
           <div>
             <p className="mb-2 text-sm font-black uppercase tracking-[0.12em] text-purple-500">Hangout photo 📷</p>
             {photoPreview || hangout?.photo_url ? (
-              <img src={photoPreview ?? hangout?.photo_url ?? ''} alt="Hangout" className="aspect-square w-full rounded-2xl border-2 border-pink-200 object-cover" />
+              <img src={photoPreview ?? hangout?.photo_url ?? ''} alt="Hangout" className="aspect-[4/3] w-full rounded-2xl border-2 border-pink-200 object-cover sm:aspect-square" />
             ) : (
               <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square w-full rounded-2xl border-2 border-dashed border-pink-200 text-sm text-pink-400">
                 🖼️ Add a photo
@@ -204,7 +204,7 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
         </div>
 
         {/* Footer buttons */}
-        <div className="px-6 pb-6 pt-3 flex gap-2 flex-shrink-0 border-t border-pink-50">
+        <div className="flex flex-shrink-0 gap-2 border-t border-pink-50 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-6">
           {hangout && (
             <button
               onClick={handleDelete}
