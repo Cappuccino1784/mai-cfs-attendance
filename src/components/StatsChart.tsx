@@ -9,12 +9,13 @@ import {
   Cell,
 } from 'recharts';
 import type { StatsResponse } from '../types';
+import MemberAvatar from './MemberAvatar';
 
 interface Props { stats: StatsResponse; }
 
 interface TooltipProps {
   active?: boolean;
-  payload?: { payload: { emoji: string; attended: number; total: number } }[];
+  payload?: { payload: { fullName: string; emoji: string; attended: number; total: number } }[];
   label?: string | number;
 }
 
@@ -23,7 +24,10 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     const d = payload[0].payload;
     return (
       <div className="bg-white rounded-2xl shadow-lg border border-pink-100 px-4 py-3 text-sm">
-        <p className="font-bold text-purple-600">{d.emoji} {label}</p>
+        <p className="flex items-center gap-1.5 font-bold text-purple-600">
+          <MemberAvatar member={{ name: d.fullName, emoji: d.emoji }} className="h-5 w-5" />
+          {label}
+        </p>
         <p className="text-pink-500 mt-1">
           {d.attended} / {d.total} hangouts
         </p>
@@ -75,7 +79,7 @@ export default function StatsChart({ stats }: Props) {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm"
             style={{ backgroundColor: m.color + '33', border: `1.5px solid ${m.color}88` }}
           >
-            <span>{m.emoji}</span>
+            <MemberAvatar member={m} className="h-6 w-6" />
             <span className="text-gray-600">{m.name.split(' ').pop()}</span>
             <span
               className="ml-1 font-bold"

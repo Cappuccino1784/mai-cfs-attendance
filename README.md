@@ -1,4 +1,24 @@
-# React + TypeScript + Vite
+# Mai CFS Attendance
+
+## Local development
+
+Install dependencies, copy `.env.local.example` to `.env.local`, add the Supabase
+credentials, then run:
+
+```bash
+npm run dev:vercel
+```
+
+This uses `vercel dev` so the React app and `/api` serverless functions run
+together. `npm run dev` starts Vite only and does not provide the `/api` routes.
+
+## Build
+
+```bash
+npm run build
+```
+
+## Original Vite notes
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

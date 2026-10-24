@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Hangout, Member } from '../types';
+import MemberAvatar from './MemberAvatar';
 
 interface Props {
   year: number;
@@ -127,7 +128,7 @@ export default function Calendar({ year, month, hangouts, members, onDayClick, o
                         record.person_name === member.name && (record.present === 1 || record.present === true)
                       ))
                       .map(member => (
-                        <span key={member.name} className="drop-shadow-sm" title={member.name}>{member.emoji}</span>
+                        <MemberAvatar key={member.name} member={member} className="h-7 w-7 drop-shadow-sm" />
                       ))}
                   </span>
                 </>

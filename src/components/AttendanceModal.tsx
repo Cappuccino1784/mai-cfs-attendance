@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Member, Hangout } from '../types';
+import MemberAvatar from './MemberAvatar';
 
 interface Props {
   date: string;
@@ -180,7 +181,7 @@ export default function AttendanceModal({ date, hangout, members, error, onClose
                   `}
                   style={present[m.name] ? { backgroundColor: m.color + '33', borderColor: m.color + '66' } : {}}
                 >
-                  <span className="text-xl">{m.emoji}</span>
+                  <MemberAvatar member={m} className="h-8 w-8 flex-shrink-0" />
                   <span className={`font-medium text-sm flex-1 ${present[m.name] ? 'text-gray-700' : 'text-gray-400'}`}>
                     {m.name}
                   </span>

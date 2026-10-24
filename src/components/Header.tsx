@@ -6,9 +6,9 @@ export default function Header() {
         <div className="pointer-events-none absolute right-0 top-0 h-36 w-36 translate-x-10 -translate-y-10 rounded-full bg-purple-300/30 blur-2xl" />
         <div className="relative">
           <div className="mb-3 flex items-center justify-center gap-3 text-3xl">
-            <span className="rotate-[-12deg]">🌸</span>
+            <img src="/pics/mai.png" alt="" className="h-10 w-10 rotate-[-12deg] rounded-full object-cover shadow-sm" />
             <span className="text-pink-400">✦</span>
-            <span className="rotate-[12deg]">🌸</span>
+            <img src="/pics/bngoc.png" alt="" className="h-10 w-10 rotate-[12deg] rounded-full object-cover shadow-sm" />
           </div>
           <h1 className="text-4xl font-black leading-none tracking-[-0.03em] text-pink-600 sm:text-6xl">
             ĐIỂM DANH

@@ -11,8 +11,14 @@ async function req<T>(path: string, options?: RequestInit): Promise<T> {
   const timeout = window.setTimeout(() => controller.abort(), 15000);
   try {
     const res = await fetch(BASE + path, { ...options, signal: options?.signal ?? controller.signal });
+    const contentType = res.headers.get('content-type') ?? '';
+    if (!contentType.includes('application/json')) {
+      throw new Error(
+        'The API returned an unexpected response. Start local development with `npm run dev:vercel` and open the Vercel URL, not the Vite port.'
+      );
+    }
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: res.statusText }));
+      const err = await res.json();
       throw new Error(err.error || `Request failed (${res.status})`);
     }
     return res.json();
